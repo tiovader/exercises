@@ -10,22 +10,23 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 class ExercismScrapper:
-    def __init__(self, driver: WebDriver, *, user: str, password: str, tracks: list[str], github=False, download=False) -> None:
+    def __init__(self, driver: WebDriver, *, user: str, password: str, tracks: list[str], by_github=False) -> None:
         self.driver = driver
         self.wait_until = WebDriverWait(driver, 10).until
         self.user = user
         self.password = password
-        self.github = github
-        self.download = download
+        self.by_github = by_github
         self.CLI_commands = []
         if isinstance(tracks, (Iterable, Sequence)):
             self.tracks = [*tracks]
         else:
             raise ValueError('tracks must be a iterable/sequence.')
 
+        self.run()
+
     def __login(self):
         self.driver.get('https://exercism.org/users/sign_in')
-        if self.github:
+        if self.by_github:
             self.driver.find_element(By.CLASS_NAME, 'github-btn').click()
             login = 'login_field'
             password = 'password'
@@ -67,13 +68,11 @@ class ExercismScrapper:
             ActionChains(self.driver).key_down(Keys.CONTROL).click(element) \
                 .key_up(Keys.CONTROL).perform()
 
-
             self.driver.switch_to.window(self.driver.window_handles[-1])
             exercise_cli = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located(
                     (By.CLASS_NAME, 'c-copy-text-to-clipboard'))
             ).text
-
             self.CLI_commands.append(exercise_cli)
             self.driver.close()
             self.driver.switch_to.window(homepage)
@@ -85,6 +84,6 @@ class ExercismScrapper:
             self.scrap_exercises(track)
 
         self.driver.quit()
-        
+
         for command in self.CLI_commands:
             os.system(command)
